@@ -7,4 +7,4 @@ I'm following the [Performance-Aware Programming](https://www.computerenhance.co
 All solutions will be written in JAI.
 
 ### Homework 1
-- ASM files were assembled using [nasm](https://www.nasm.us/) 
+- ASM files were assembled using [nasm](https://www.nasm.us/).
