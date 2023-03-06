@@ -6,5 +6,10 @@ I'm following the [Performance-Aware Programming](https://www.computerenhance.co
 
 All solutions will be written in JAI.
 
+All 8086 asm files obtained form [here](https://github.com/cmuratori/computer_enhance/tree/main/perfaware/part1)
+
 ### Homework 1
 - ASM files were assembled using [nasm](https://www.nasm.us/).
+
+### Homework 2
+- WIP

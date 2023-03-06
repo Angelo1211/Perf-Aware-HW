@@ -2,38 +2,12 @@
 #import "File";
 #import "String";
 
-// If you don't have these, it's likely that you haven't assembled the corresponding .asm files
-// I used https://www.nasm.us/ for that.
+#load "../8086_Parsing.jai";
+
 FILES :: string.[
-    "data/listing_0037_single_register_mov",
-    "data/listing_0038_many_register_mov",
+    "../data/listing_0037_single_register_mov",
+    "../data/listing_0038_many_register_mov",
 ];
-
-OP_Codes :: enum u8
-{
-    mov :: 0b100010;
-}
-
-MOD_Encoding :: enum u8
-{
-    MEMORY_MODE_NO_DISPLACEMENT   :: 0b00;
-    MEMORY_MODE_08_DISPLACEMENT   :: 0b01;
-    MEMORY_MODE_16_DISPLACEMENT   :: 0b10;
-    REGISTER_MODE_NO_DISPLACEMENT :: 0b11;
-}
-
-REG_Encoding :: enum u8
-{
-    // Byte
-    al;cl;dl;bl;
-    ah;ch;dh;bh;
-
-    // Wide
-    ax;cx;dx;bx;
-    sp;bp;si;di;
-}
-REGISTER_WIDE_OFFSET :: REG_Encoding.ax;
-
 
 main :: ()
 {
@@ -46,8 +20,7 @@ main :: ()
         if !success then return;
         defer free(file_data);
 
-        print_to_builder(*builder, "// Original File: %\n\n", path_filename(f));
-        append(*builder, "bits 16\n\n");
+        print_to_builder(*builder, "// Original File: %\n\nbits 16\n\n", path_filename(f));
 
         instruction_stream := cast([]u8)file_data;
         while instruction_stream.count > 0
@@ -62,12 +35,11 @@ main :: ()
             {
                 case .mov;
                 {
-                    advance(*instruction_stream);
-                    byte := get(*instruction_stream);
+                    byte := advance(*instruction_stream);
 
                     mod := cast(MOD_Encoding) ((byte >> 6) & 0b011);
-                    r_m :=                    ((byte >> 0) & 0b111);
                     reg :=                    ((byte >> 3) & 0b111);
+                    r_m :=                    ((byte >> 0) & 0b111);
 
                     if mod == 
                     {
@@ -91,7 +63,6 @@ main :: ()
                 case;
                     assert(false);
             }
-
             advance(*instruction_stream);
         }
 
@@ -99,18 +70,4 @@ main :: ()
         success = write_entire_file(output_file_name, *builder, true);
         if !success then return;
     }
-}
-
-get :: inline (bytes : *[]u8) -> u8
-{
-    return ifx bytes.count > 0 then <<bytes.data else 0;
-}
-
-advance :: inline (bytes : *[]u8, amount := 1)
-{
-    assert(amount >= 0);
-    assert(bytes.count >= amount);
-
-    bytes.data  += amount;
-    bytes.count -= amount;
 }
