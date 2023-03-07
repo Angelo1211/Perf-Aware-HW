@@ -2,7 +2,44 @@
 #import "File";
 #import "String";
 
-#load "../8086_Parsing.jai";
+OP_Codes :: enum u8
+{
+    mov  :: 0b100010;
+}
+
+MOD_Encoding :: enum u8
+{
+    MEMORY_MODE_NO_DISPLACEMENT   :: 0b00; 
+    MEMORY_MODE_08_DISPLACEMENT   :: 0b01;
+    MEMORY_MODE_16_DISPLACEMENT   :: 0b10;
+    REGISTER_MODE_NO_DISPLACEMENT :: 0b11;
+}
+
+REG_Encoding :: enum u8
+{
+    // Byte
+    al;cl;dl;bl;
+    ah;ch;dh;bh;
+
+    // Wide
+    ax;cx;dx;bx;
+    sp;bp;si;di;
+}
+REGISTER_WIDE_OFFSET :: REG_Encoding.ax;
+
+get :: inline (bytes : *[]u8) -> u8
+{
+    return ifx bytes.count > 0 then <<bytes.data else 0;
+}
+
+advance :: inline (bytes : *[]u8, amount := 1)
+{
+    assert(amount >= 0);
+    assert(bytes.count >= amount);
+
+    bytes.data  += amount;
+    bytes.count -= amount;
+}
 
 FILES :: string.[
     "../data/listing_0037_single_register_mov",
@@ -35,7 +72,8 @@ main :: ()
             {
                 case .mov;
                 {
-                    byte := advance(*instruction_stream);
+                    advance(*instruction_stream);
+                    byte := get(*instruction_stream);
 
                     mod := cast(MOD_Encoding) ((byte >> 6) & 0b011);
                     reg :=                    ((byte >> 3) & 0b111);
@@ -52,7 +90,9 @@ main :: ()
                             src := cast(REG_Encoding) ifx d_flag then r_m else reg;
                             src += ifx w_flag then REGISTER_WIDE_OFFSET;
 
-                            print_to_builder(*builder, "% %, %\n", op_code, dst, src);
+                            output_string := tprint("% %, %\n", op_code, dst, src);
+                            append(*builder, output_string);
+                            print("%", output_string);
                         }
 
                         case;
@@ -66,7 +106,7 @@ main :: ()
             advance(*instruction_stream);
         }
 
-        output_file_name := tprint("data/disassembled_%.asm", path_filename(f));
+        output_file_name := tprint("data/%_disassembled.asm", path_filename(f));
         success = write_entire_file(output_file_name, *builder, true);
         if !success then return;
     }
