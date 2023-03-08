@@ -77,7 +77,6 @@ main :: ()
                         advance(*instruction_stream);
                         data_hi :u16= get(*instruction_stream);
                         data |= data_hi << 8;
-                        data = sign_extend(data, 16);
                     }
                     else
                         data = sign_extend(data, 8);
