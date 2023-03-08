@@ -37,24 +37,68 @@ main :: ()
 
             if op_code == 
             {
-                case .mov_register_to_register;
+                case .mov_register_or_memory_to_register_or_memory;
                 {
                     d_flag := cast(bool) byte0 & 0b10;
                     w_flag := cast(bool) byte0 & 0b01;
 
                     mod := cast(MOD_Encoding) ((byte1 >> 6) & 0b011);
-                    reg :=                    ((byte1 >> 3) & 0b111);
-                    r_m :=                    ((byte1 >> 0) & 0b111);
+                    reg := cast(REG_Encoding) ((byte1 >> 3) & 0b111);
+                    r_m := cast(REG_Encoding) ((byte1 >> 0) & 0b111);
 
                     if mod == 
                     {
+                        // Memory / register to memory / register
+                        case .MEMORY_MODE_NO_DISPLACEMENT; #through;
+                        case .MEMORY_MODE_08_DISPLACEMENT; #through;
+                        case .MEMORY_MODE_16_DISPLACEMENT;
+                        {
+                            effective_address : string;
+                            if mod == .MEMORY_MODE_NO_DISPLACEMENT
+                            {
+                                if r_m != 0b110
+                                {
+                                    effective_address = calculate_effective_address( xx r_m);
+                                }
+                                else
+                                {
+                                    // There can be displacement bytes if we're doing direct addressing
+                                    // TODO
+                                }
+                            }
+                            else
+                            {
+                                advance(*instruction_stream);
+                                disp :u16= get(*instruction_stream);
+
+                                if mod == .MEMORY_MODE_16_DISPLACEMENT
+                                {
+                                    advance(*instruction_stream);
+                                    disp_hi :u16= get(*instruction_stream);
+                                    disp |= disp_hi << 8;
+                                }
+                                else
+                                {
+                                    disp = sign_extend(disp, 8);
+                                }
+
+                                effective_address = calculate_effective_address(xx r_m, disp);
+                            }
+
+                            reg += ifx w_flag then REGISTER_WIDE_OFFSET;
+
+                            if d_flag
+                                output_string = tprint("% %, %\n", op_code_name, reg, effective_address);
+                            else
+                                output_string = tprint("% %, %\n", op_code_name, effective_address, reg);
+                        }
                         // Register to register MOV
                         case .REGISTER_MODE_NO_DISPLACEMENT;
                         {
-                            dst := cast(REG_Encoding) ifx d_flag then reg else r_m;
+                            dst := ifx d_flag then reg else r_m;
                             dst += ifx w_flag then REGISTER_WIDE_OFFSET;
 
-                            src := cast(REG_Encoding) ifx d_flag then r_m else reg;
+                            src := ifx d_flag then r_m else reg;
                             src += ifx w_flag then REGISTER_WIDE_OFFSET;
 
                             output_string = tprint("% %, %\n", op_code_name, dst, src);
@@ -79,7 +123,9 @@ main :: ()
                         data |= data_hi << 8;
                     }
                     else
+                    {
                         data = sign_extend(data, 8);
+                    }
 
                     output_string = tprint("% %, %\n", op_code_name, dst, data);
                 }
@@ -92,10 +138,28 @@ main :: ()
         }
         print("\n\n");
 
-        // output_file_name := tprint("data/%_disassembled.asm", path_filename(f));
-        // success = write_entire_file(output_file_name, *builder, true);
-        // if !success then return;
+        output_file_name := tprint("../data/%_disassembled.asm", path_filename(f));
+        success = write_entire_file(output_file_name, *builder, true);
+        if !success then return;
     }
+}
+
+// TODO(AO) Maybe the string builder is better suited for this?
+calculate_effective_address :: (r_m : u8, dis : u16 = 0) -> string
+{
+    effective_address_components := Effective_Address_Encodings[r_m];
+
+    effective_address := tprint("[%", effective_address_components[0]);
+
+    if effective_address_components[1]
+        effective_address = tprint("% + %", effective_address, effective_address_components[1]);
+    
+    if dis != 0
+        effective_address = tprint("% + %", effective_address, dis);
+
+    effective_address = tprint("%]", effective_address);
+
+    return effective_address;
 }
 
 decode_op_code :: inline (byte : u8) -> OP_Codes, string
@@ -113,7 +177,7 @@ decode_op_code :: inline (byte : u8) -> OP_Codes, string
         {
             // We actually don't do anything here, we only want to assert 
             // if we encounter an unrecognized opcode
-            case .mov_register_to_register;
+            case .mov_register_or_memory_to_register_or_memory;
             case .mov_immediate_to_register_or_memory;
             
             // Unrecognized opcode

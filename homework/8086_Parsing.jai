@@ -2,11 +2,11 @@
 OP_Codes :: enum u8
 {
     // 4 bit OP_CODES
-    mov_immediate_to_register           :: 0b1011;
+    mov_immediate_to_register                       :: 0b1011;
 
     // 6 bit OP_CODES
-    mov_register_to_register            :: 0b100010;
-    mov_immediate_to_register_or_memory :: 0b110001;
+    mov_register_or_memory_to_register_or_memory    :: 0b100010;
+    mov_immediate_to_register_or_memory             :: 0b110001;
 }
 
 MOD_Encoding :: enum u8
@@ -28,6 +28,20 @@ REG_Encoding :: enum u8
     sp;bp;si;di;
 }
 REGISTER_WIDE_OFFSET :: REG_Encoding.ax;
+
+Effective_Address_Encodings :: [2] string.[
+    string.["bx", "si"],
+    string.["bx", "di"],
+
+    string.["bp", "si"],
+    string.["bp", "di"],
+
+    string.["si", ""],
+    string.["di", ""],
+
+    string.["bp", ""], // When MEMORY_MODE_NO_DISPLACEMENT is true this is a Direct Address
+    string.["bx", ""],
+];
 
 get :: inline (bytes : *[]u8) -> u8
 {
