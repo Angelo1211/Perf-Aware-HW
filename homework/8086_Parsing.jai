@@ -1,12 +1,16 @@
 
 OP_Codes :: enum u8
 {
-    // 4 bit OP_CODES
+    // 4 bit OP CODES
     mov_immediate_to_register                       :: 0b1011;
 
-    // 6 bit OP_CODES
+    // 6 bit OP CODES
     mov_register_or_memory_to_register_or_memory    :: 0b100010;
     mov_immediate_to_register_or_memory             :: 0b110001;
+
+    // 7 bit OP CODES
+    mov_memory_to_accumulator                       :: 0b1010000;
+    mov_accumulator_to_memory                       :: 0b1010001;
 }
 
 MOD_Encoding :: enum u8
@@ -48,13 +52,15 @@ get :: inline (bytes : *[]u8) -> u8
     return ifx bytes.count > 0 then <<bytes.data else 0;
 }
 
-advance :: inline (bytes : *[]u8, amount := 1)
+advance :: inline (bytes : *[]u8, amount := 1) -> u8
 {
     assert(amount >= 0);
     assert(bytes.count >= amount);
 
     bytes.data  += amount;
     bytes.count -= amount;
+
+    return get(bytes);
 }
 
 sign_extend :: inline (x : u16, bit_count :int) -> u16
